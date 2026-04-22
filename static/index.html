@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SpeechLM — Voice Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#0a0a0f;--surf:#12121a;--border:#1e1e2e;--accent:#7c6af7;--accent2:#4fd1c5;--text:#e8e8f0;--muted:#6b6b80;--err:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;opacity:.3;pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;top:-20%;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(124,106,247,.08) 0%,transparent 70%);pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:56px 24px 80px}
+
+header{margin-bottom:44px}
+.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(124,106,247,.1);border:1px solid rgba(124,106,247,.3);color:var(--accent);font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:6px 14px;border-radius:100px;margin-bottom:20px}
+.badge::before{content:'';width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite}
+h1{font-family:'Space Mono',monospace;font-size:clamp(26px,5vw,46px);font-weight:700;line-height:1.1;letter-spacing:-.02em;margin-bottom:12px}
+h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:var(--muted);font-size:14px;line-height:1.6;max-width:500px}
+.stats{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+.sv{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:var(--accent)}
+.sl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:32px 0}
+
+/* Tabs */
+.tabs{display:flex;gap:0;margin-bottom:0;border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:12px;text-align:center;font-family:'Space Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* Card */
+.card{background:var(--surf);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.tab-content{display:none;padding:28px}
+.tab-content.active{display:block}
+.card-label{font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:20px}
+
+/* Mic */
+.mic-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;padding:28px 0}
+.mic-btn{width:84px;height:84px;border-radius:50%;border:2px solid var(--accent);background:rgba(124,106,247,.08);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.mic-btn:hover:not(:disabled){background:rgba(124,106,247,.18);transform:scale(1.06)}
+.mic-btn.rec{border-color:var(--err);background:rgba(248,113,113,.12);animation:ring 1s infinite}
+.mic-btn:disabled{opacity:.5;cursor:not-allowed}
+.mic-icon{font-size:30px;pointer-events:none}
+.mic-lbl{font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);text-align:center}
+.mic-lbl.rec{color:var(--err)}
+.timer{font-family:'Space Mono',monospace;font-size:32px;font-weight:700;color:var(--accent);opacity:0;transition:opacity .3s;min-width:70px;text-align:center}
+.timer.on{opacity:1}
+.max-note{font-size:11px;color:var(--muted);font-family:'Space Mono',monospace}
+
+/* Text input */
+.text-area-wrap{margin-bottom:16px}
+textarea{width:100%;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;padding:14px 16px;resize:vertical;min-height:90px;outline:none;transition:border-color .2s}
+textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,106,247,.1)}
+textarea::placeholder{color:var(--muted)}
+.examples{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.pill{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:100px;padding:6px 14px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap}
+.pill:hover{border-color:var(--accent);color:var(--text)}
+.gen-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),#5a4fcf);border:none;border-radius:10px;color:#fff;font-family:'Space Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:all .2s;box-shadow:0 4px 20px rgba(124,106,247,.3)}
+.gen-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 28px rgba(124,106,247,.4)}
+.gen-btn:disabled{opacity:.6;cursor:not-allowed}
+
+/* Params */
+.params{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}
+.pg{flex:1;min-width:120px}
+.pg label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:5px;font-family:'Space Mono',monospace}
+.pg input[type=range]{width:100%;accent-color:var(--accent)}
+.pv{font-family:'Space Mono',monospace;font-size:12px;color:var(--accent);margin-top:3px}
+
+.status{text-align:center;font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);min-height:18px;margin-top:14px}
+.status.proc{color:var(--accent)}
+.errmsg{display:none;margin-top:12px;padding:12px 16px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:8px;color:var(--err);font-size:12px;font-family:'Space Mono',monospace;word-break:break-all}
+.result{display:none;margin-top:20px;padding:18px;background:rgba(79,209,197,.05);border:1px solid rgba(79,209,197,.2);border-radius:10px}
+.rh{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.rt{font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent2)}
+.meta{display:flex;gap:12px;flex-wrap:wrap}
+.meta span{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)}
+.meta strong{color:var(--accent2)}
+audio{width:100%;border-radius:6px;accent-color:var(--accent2)}
+
+.arch{margin-top:40px}
+.at{font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:14px}
+.ag{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}
+.ai{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:13px;transition:border-color .2s}
+.ai:hover{border-color:var(--accent)}
+.ai .ic{font-size:17px;margin-bottom:5px}
+.ai .an{font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);margin-bottom:3px}
+.ai .ad{font-size:11px;color:var(--muted);line-height:1.5}
+
+footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+footer .fl{font-size:12px;color:var(--muted)}
+footer .fl strong{color:var(--text)}
+.lks{display:flex;gap:12px}
+.lks a{font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-decoration:none;transition:color .2s}
+.lks a:hover{color:var(--accent)}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes ring{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,.4)}50%{box-shadow:0 0 0 14px rgba(248,113,113,0)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="badge">Live Demo · SpeechLM</div>
+    <h1>Speech<span>LM</span></h1>
+    <p class="sub">A 522M parameter joint speech-text language model trained from scratch on 100 hours of LibriSpeech.</p>
+    <div class="stats">
+      <div><div class="sv">522M</div><div class="sl">Parameters</div></div>
+      <div><div class="sv">24</div><div class="sl">Layers</div></div>
+      <div><div class="sv">100h</div><div class="sl">Trained on</div></div>
+      <div><div class="sv">3.49</div><div class="sl">Val Loss</div></div>
+    </div>
+  </header>
+
+  <div class="divider"></div>
+
+  <div class="card">
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('text')">📝 Text → Speech</button>
+      <button class="tab" onclick="switchTab('voice')">🎙️ Voice → Voice</button>
+    </div>
+
+    <!-- Text tab -->
+    <div class="tab-content active" id="tab-text">
+      <p class="card-label">Type text → model speaks it</p>
+
+      <div class="text-area-wrap">
+        <textarea id="textInput" placeholder="Type something for the model to speak…" maxlength="300"></textarea>
+      </div>
+
+      <div class="examples">
+        <div class="pill" onclick="useEx(this)">Hello world</div>
+        <div class="pill" onclick="useEx(this)">The quick brown fox</div>
+        <div class="pill" onclick="useEx(this)">I trained this model from scratch</div>
+        <div class="pill" onclick="useEx(this)">Speech and language together</div>
+      </div>
+
+      <div class="params">
+        <div class="pg">
+          <label>Max Tokens</label>
+          <input type="range" id="tMaxTok" min="50" max="400" value="200" step="50"
+                 oninput="document.getElementById('tTokV').textContent=this.value"/>
+          <div class="pv" id="tTokV">200</div>
+        </div>
+        <div class="pg">
+          <label>Temperature</label>
+          <input type="range" id="tTemp" min="0.5" max="1.4" value="0.8" step="0.1"
+                 oninput="document.getElementById('tTempV').textContent=this.value"/>
+          <div class="pv" id="tTempV">0.8</div>
+        </div>
+        <div class="pg">
+          <label>Top-P</label>
+          <input type="range" id="tTopp" min="0.5" max="1.0" value="0.9" step="0.05"
+                 oninput="document.getElementById('tToppV').textContent=this.value"/>
+          <div class="pv" id="tToppV">0.9</div>
+        </div>
+      </div>
+
+      <button class="gen-btn" id="genBtn" onclick="generateText()" style="margin-top:16px">
+        Generate Speech
+      </button>
+
+      <div class="status" id="tStatus"></div>
+      <div class="errmsg" id="tErr"></div>
+
+      <div class="result" id="tResult">
+        <div class="rh">
+          <span class="rt">▶ Model Output</span>
+          <div class="meta">
+            <span>Tokens: <strong id="tTok">—</strong></span>
+            <span>Time: <strong id="tTime">—</strong>s</span>
+          </div>
+        </div>
+        <audio id="tPlayer" controls></audio>
+      </div>
+    </div>
+
+    <!-- Voice tab -->
+    <div class="tab-content" id="tab-voice">
+      <p class="card-label">Speak → model repeats in its voice</p>
+
+      <div class="mic-wrap">
+        <div class="timer" id="timer">0:00</div>
+        <button class="mic-btn" id="micBtn" onclick="toggleRecord()">
+          <span class="mic-icon" id="micIcon">🎙️</span>
+        </button>
+        <p class="mic-lbl" id="micLbl">Click to start recording</p>
+        <p class="max-note">Max 30 seconds · speak clearly</p>
+      </div>
+
+      <div class="params">
+        <div class="pg">
+          <label>Max Tokens</label>
+          <input type="range" id="vMaxTok" min="50" max="400" value="150" step="50"
+                 oninput="document.getElementById('vTokV').textContent=this.value"/>
+          <div class="pv" id="vTokV">150</div>
+        </div>
+        <div class="pg">
+          <label>Temperature</label>
+          <input type="range" id="vTemp" min="0.5" max="1.4" value="0.8" step="0.1"
+                 oninput="document.getElementById('vTempV').textContent=this.value"/>
+          <div class="pv" id="vTempV">0.8</div>
+        </div>
+        <div class="pg">
+          <label>Top-P</label>
+          <input type="range" id="vTopp" min="0.5" max="1.0" value="0.9" step="0.05"
+                 oninput="document.getElementById('vToppV').textContent=this.value"/>
+          <div class="pv" id="vToppV">0.9</div>
+        </div>
+      </div>
+
+      <div class="status" id="vStatus"></div>
+      <div class="errmsg" id="vErr"></div>
+
+      <div class="result" id="vResult">
+        <div class="rh">
+          <span class="rt">▶ Model Output</span>
+          <div class="meta">
+            <span>Duration: <strong id="vDur">—</strong>s</span>
+            <span>Tokens: <strong id="vTok">—</strong></span>
+            <span>Time: <strong id="vTime">—</strong>s</span>
+          </div>
+        </div>
+        <audio id="vPlayer" controls></audio>
+      </div>
+    </div>
+  </div>
+
+  <div class="arch">
+    <p class="at">Architecture</p>
+    <div class="ag">
+      <div class="ai"><div class="ic">🔢</div><div class="an">Vocabulary</div><div class="ad">51K tokens: GPT-2 text + EnCodec audio</div></div>
+      <div class="ai"><div class="ic">🔄</div><div class="an">RoPE</div><div class="ad">Rotary positional encoding, 24 layers</div></div>
+      <div class="ai"><div class="ic">⚡</div><div class="an">SwiGLU</div><div class="ad">Gated activation, 4096 FFN hidden dim</div></div>
+      <div class="ai"><div class="ic">🎵</div><div class="an">EnCodec</div><div class="ad">24kHz, 6kbps, 8 codebooks, 75fps</div></div>
+      <div class="ai"><div class="ic">🖥️</div><div class="an">Training</div><div class="ad">A100 GPU · SLURM · 100K steps</div></div>
+      <div class="ai"><div class="ic">📉</div><div class="an">Loss</div><div class="ad">11.0 → 3.49 val loss over 100K steps</div></div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="fl">Built by <strong>Kiran Ramanagarajayaram</strong> · MS SE, Northeastern</div>
+    <div class="lks">
+      <a href="https://github.com" target="_blank">GitHub</a>
+      <a href="https://linkedin.com" target="_blank">LinkedIn</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', (i===0 && name==='text') || (i===1 && name==='voice'));
+  });
+  document.getElementById('tab-text').classList.toggle('active', name==='text');
+  document.getElementById('tab-voice').classList.toggle('active', name==='voice');
+}
+
+// ── Text generation ───────────────────────────────────────────────────────────
+async function generateText() {
+  const text = document.getElementById('textInput').value.trim();
+  if (!text) { showErr('tErr', 'Please enter some text first.'); return; }
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  hideErr('tErr');
+  document.getElementById('tResult').style.display = 'none';
+  setStatus('tStatus', 'Generating… (20–60s on GPU)', true);
+
+  try {
+    const res  = await fetch('/generate-from-text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+    if (!res.ok) { showErr('tErr', data.detail || 'Error'); setStatus('tStatus',''); return; }
+
+    document.getElementById('tPlayer').src       = data.audio_url + '?t=' + Date.now();
+    document.getElementById('tTok').textContent  = data.tokens;
+    document.getElementById('tTime').textContent = data.time;
+    document.getElementById('tResult').style.display = 'block';
+    document.getElementById('tPlayer').play().catch(()=>{});
+    setStatus('tStatus', 'Done!');
+  } catch(e) {
+    showErr('tErr', e.message);
+    setStatus('tStatus', '');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate Speech';
+  }
+}
+
+function useEx(el) {
+  document.getElementById('textInput').value = el.textContent;
+}
+
+// ── Voice recording ───────────────────────────────────────────────────────────
+let mediaRec=null, chunks=[], recording=false, timerInt=null, secs=0;
+
+async function toggleRecord() {
+  if (!recording) await startRec(); else await stopRec();
+}
+
+async function startRec() {
+  hideErr('vErr');
+  document.getElementById('vResult').style.display = 'none';
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e) { showErr('vErr','Microphone access denied.'); return; }
+
+  const mime = getBestMime();
+  mediaRec = new MediaRecorder(stream, mime ? {mimeType:mime} : {});
+  chunks = [];
+  mediaRec.ondataavailable = e => { if(e.data && e.data.size>0) chunks.push(e.data); };
+  mediaRec.start(100);
+  recording = true; secs = 0;
+  setVoiceUI('recording');
+
+  timerInt = setInterval(() => {
+    secs++;
+    const m=Math.floor(secs/60), s=secs%60;
+    document.getElementById('timer').textContent=`${m}:${String(s).padStart(2,'0')}`;
+    if(secs>=30) stopRec();
+  }, 1000);
+}
+
+async function stopRec() {
+  if(!recording||!mediaRec) return;
+  clearInterval(timerInt);
+  recording = false;
+  setVoiceUI('processing');
+  setStatus('vStatus','Sending to model…',true);
+
+  return new Promise(resolve => {
+    mediaRec.onstop = async () => {
+      const blob = new Blob(chunks, {type: mediaRec.mimeType||'audio/webm'});
+      await sendAudio(blob);
+      mediaRec.stream.getTracks().forEach(t=>t.stop());
+      setVoiceUI('idle');
+      resolve();
+    };
+    mediaRec.stop();
+  });
+}
+
+async function sendAudio(blob) {
+  const form = new FormData();
+  form.append('file', blob, 'recording.webm');
+  form.append('max_tokens', document.getElementById('vMaxTok').value);
+  form.append('temperature', document.getElementById('vTemp').value);
+  form.append('top_p', document.getElementById('vTopp').value);
+
+  try {
+    setStatus('vStatus','Generating… (20–60s on GPU)',true);
+    const res  = await fetch('/generate-from-audio', {method:'POST', body:form});
+    const data = await res.json();
+    if(!res.ok) { showErr('vErr', data.detail||'Error'); setStatus('vStatus',''); return; }
+    document.getElementById('vPlayer').src        = data.audio_url+'?t='+Date.now();
+    document.getElementById('vDur').textContent   = data.duration_seconds;
+    document.getElementById('vTok').textContent   = data.tokens_generated;
+    document.getElementById('vTime').textContent  = data.inference_time_seconds;
+    document.getElementById('vResult').style.display = 'block';
+    document.getElementById('vPlayer').play().catch(()=>{});
+    setStatus('vStatus','Done! Click mic to record again.');
+  } catch(e) { showErr('vErr',e.message); setStatus('vStatus',''); }
+}
+
+function setVoiceUI(state) {
+  const btn=document.getElementById('micBtn');
+  const icon=document.getElementById('micIcon');
+  const lbl=document.getElementById('micLbl');
+  const tmr=document.getElementById('timer');
+  btn.disabled=(state==='processing');
+  btn.classList.toggle('rec', state==='recording');
+  tmr.classList.toggle('on', state==='recording');
+  lbl.classList.toggle('rec', state==='recording');
+  if(state==='recording'){icon.textContent='⏹️';lbl.textContent='Recording… click to stop';}
+  else if(state==='processing'){icon.textContent='⏳';lbl.textContent='Processing…';tmr.classList.remove('on');}
+  else{icon.textContent='🎙️';lbl.textContent='Click to record again';tmr.classList.remove('on');}
+}
+
+function getBestMime(){
+  return ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4','audio/wav']
+    .find(t=>MediaRecorder.isTypeSupported(t))||'';
+}
+
+function setStatus(id,msg,proc=false){
+  const s=document.getElementById(id);
+  s.textContent=msg; s.className='status'+(proc?' proc':'');
+}
+function showErr(id,msg){const e=document.getElementById(id);e.textContent='⚠ '+msg;e.style.display='block';}
+function hideErr(id){document.getElementById(id).style.display='none';}
+
+// Ctrl+Enter to generate text
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')generateText();});
+</script>
+</body>
+</html>

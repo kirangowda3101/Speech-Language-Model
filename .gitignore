@@ -1,0 +1,17 @@
+best.pt
+*.pt
+*.pth
+__pycache__/
+*.pyc
+.venv/
+static/audio/
+*.wav
+*.flac
+*.npy
+tokens/
+data/
+logs/
+*.tmp
+*.json
+.DS_Store
+.idea/
