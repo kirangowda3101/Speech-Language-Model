@@ -1,14 +1,14 @@
 # Speech Language Model
 
-A 522 million parameter joint speech-text language model built from scratch. The model learns to generate speech by treating audio as a sequence of discrete tokens, the same way GPT treats text. No pretrained speech encoder, no fine-tuning on top of Whisper — everything is trained from the ground up.
+A 522 million parameter joint speech-text language model built from scratch. The model learns to generate speech by treating audio as a sequence of discrete tokens, the same way GPT treats text. No pretrained speech encoder, no fine-tuning on top of Whisper - everything is trained from the ground up.
 
 ## What it does
 
-You type a sentence, the model generates audio. Or you speak into a microphone and the model responds in its own voice. The output at this training stage sounds like structured noise — the model has learned patterns in speech but hasn't converged to intelligible words yet. That is expected and honest for 100K training steps on 100 hours of data.
+You type a sentence, the model generates audio. Or you speak into a microphone and the model responds in its own voice. The output at this training stage sounds like structured noise - the model has learned patterns in speech but hasn't converged to intelligible words yet. That is expected and honest for 100K training steps on 100 hours of data.
 
 ## How it works
 
-Text and audio live in the same vocabulary. GPT-2's BPE tokenizer covers text (50,257 tokens). Meta's EnCodec neural audio codec converts raw audio into discrete codes at 75 frames per second with 8 codebooks, producing 600 audio tokens per second. Both token types are concatenated into a single sequence and fed into a transformer that predicts the next token — whether that next token is a word or a piece of audio.
+Text and audio live in the same vocabulary. GPT-2's BPE tokenizer covers text (50,257 tokens). Meta's EnCodec neural audio codec converts raw audio into discrete codes at 75 frames per second with 8 codebooks, producing 600 audio tokens per second. Both token types are concatenated into a single sequence and fed into a transformer that predicts the next token - whether that next token is a word or a piece of audio.
 
 Training sequences look like this:
 
