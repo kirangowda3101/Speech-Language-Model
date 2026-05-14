@@ -105,10 +105,10 @@ class ModelConfig:
 class TrainingConfig:
     batch_size:       int   = 8       # per GPU
     grad_accum_steps: int   = 4       # effective batch = batch_size × accum × n_gpus
-    max_lr:           float = 3e-4
-    min_lr:           float = 3e-5    # cosine decay floor
+    max_lr:           float = 3e-5    # 10x lower than pre-training — finetuning on GigaSpeech to avoid overwriting learned representations
+    min_lr:           float = 3e-6    # keep 10x ratio with max_lr
     warmup_steps:     int   = 2_000
-    max_steps:        int   = 100_000
+    max_steps:        int   = 250_000  # pre-training ran to 100K; this extends for another 150K steps on GigaSpeech
     weight_decay:     float = 0.1
     grad_clip:        float = 1.0
     mixed_precision:  bool  = True    # bf16 on A100/H100, fp16 otherwise
