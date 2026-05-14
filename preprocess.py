@@ -34,7 +34,9 @@ Output layout:
 
 import argparse
 import json
+import re
 import time
+import torch
 import numpy as np
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -165,15 +167,121 @@ def preprocess_split(
     return stats
 
 
+_GIGASPEECH_TAGS = re.compile(r"<[^>]+>")
+
+
+def _clean_gigaspeech_text(text: str) -> str:
+    """Remove GigaSpeech punctuation tags like <COMMA>, <PERIOD>, etc."""
+    return _GIGASPEECH_TAGS.sub("", text).strip()
+
+
+def preprocess_gigaspeech(
+    output_root: Path,
+    wrapper: "EnCodecWrapper",
+    tok: SpeechLMTokenizer,
+    subset: str = "m",
+    hf_split: str = "train",
+) -> dict:
+    """
+    Download and preprocess GigaSpeech via HuggingFace datasets.
+
+    Produces the same .npy / .txt output layout as preprocess_split(),
+    written to output_root/gigaspeech-{subset}/.
+
+    Args:
+        output_root : root directory for token files
+        wrapper     : EnCodecWrapper instance
+        tok         : SpeechLMTokenizer instance
+        subset      : GigaSpeech size bucket — xs/s/m/l/xl (default: m ≈ 1000h)
+        hf_split    : HuggingFace split to use (default: train)
+    """
+    try:
+        from datasets import load_dataset
+    except ImportError:
+        raise ImportError("pip install datasets")
+
+    try:
+        import torchaudio.functional as AF
+    except ImportError:
+        raise ImportError("pip install torchaudio")
+
+    split_name = f"gigaspeech-{subset}"
+    out_dir = output_root / split_name
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"\nLoading GigaSpeech '{subset}' ({hf_split}) from HuggingFace...")
+    ds = load_dataset(
+        "speechcolab/gigaspeech", subset,
+        split=hf_split,
+        trust_remote_code=True,
+    )
+    print(f"  {len(ds):,} examples")
+
+    stats = {"total": 0, "skipped": 0, "errors": 0,
+             "total_tokens": 0, "total_duration": 0.0}
+
+    for example in tqdm(ds, desc=split_name, unit="file"):
+        seg_id   = example["segment_id"]
+        npy_path = out_dir / f"{seg_id}.npy"
+        txt_path = out_dir / f"{seg_id}.txt"
+
+        if npy_path.exists():
+            existing = np.load(npy_path)
+            stats["total"]        += 1
+            stats["total_tokens"] += len(existing)
+            stats["skipped"]      += 1
+            continue
+
+        try:
+            audio    = example["audio"]
+            waveform = torch.from_numpy(audio["array"]).float().unsqueeze(0)  # (1, samples)
+            sr       = audio["sampling_rate"]
+
+            if sr != TARGET_SR:
+                waveform = AF.resample(waveform, sr, TARGET_SR)
+
+            waveform     = peak_normalise(waveform)
+            duration_sec = waveform.shape[-1] / TARGET_SR
+
+            codes     = wrapper.encode(waveform, sample_rate=TARGET_SR)
+            audio_ids = tok.encode_audio_codes(codes.numpy())
+
+            np.save(npy_path, np.array(audio_ids, dtype=np.int32))
+
+            transcript = _clean_gigaspeech_text(example["text"])
+            if transcript:
+                txt_path.write_text(transcript)
+
+            stats["total"]          += 1
+            stats["total_tokens"]   += len(audio_ids)
+            stats["total_duration"] += duration_sec
+
+        except Exception as e:
+            print(f"  ERROR {seg_id}: {e}")
+            stats["errors"] += 1
+
+    print(f"  Done: {stats['total']:,} files, "
+          f"{stats['total_tokens']:,} tokens, "
+          f"{stats['total_duration']/3600:.1f}h audio, "
+          f"{stats['errors']} errors, {stats['skipped']} skipped")
+    return stats
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Preprocess LibriSpeech to token arrays")
-    parser.add_argument("--librispeech_root", type=str, required=True,
-                        help="Path to LibriSpeech root (contains train-clean-100/, etc.)")
+    parser = argparse.ArgumentParser(description="Preprocess audio data to token arrays")
+    parser.add_argument("--dataset", type=str, default="librispeech",
+                        choices=["librispeech", "gigaspeech"],
+                        help="Dataset to preprocess")
+    parser.add_argument("--librispeech_root", type=str,
+                        help="Path to LibriSpeech root (required for --dataset librispeech)")
     parser.add_argument("--output_root",      type=str, required=True,
                         help="Where to write .npy token files")
     parser.add_argument("--splits", nargs="+",
                         default=["train-clean-100"],
-                        help="Which splits to process")
+                        help="LibriSpeech splits to process (ignored for gigaspeech)")
+    parser.add_argument("--gigaspeech_subset", type=str, default="m",
+                        choices=["xs", "s", "m", "l", "xl"],
+                        help="GigaSpeech size bucket (default: m ≈ 1000h)")
     parser.add_argument("--device",    type=str, default="cuda",
                         help="cuda / cpu")
     parser.add_argument("--bandwidth", type=float, default=6.0,
@@ -184,32 +292,39 @@ def main():
         print("ERROR: encodec not installed. Run: pip install encodec")
         return
 
-    librispeech_root = Path(args.librispeech_root)
-    output_root      = Path(args.output_root)
+    if args.dataset == "librispeech" and not args.librispeech_root:
+        parser.error("--librispeech_root is required when --dataset=librispeech")
+
+    output_root = Path(args.output_root)
     output_root.mkdir(parents=True, exist_ok=True)
 
     cfg     = small_config()
     tok     = SpeechLMTokenizer(cfg.vocab)
     wrapper = EnCodecWrapper(bandwidth=args.bandwidth, device=args.device)
 
-    print(f"\nPreprocessing LibriSpeech → {output_root}")
-    print(f"Splits: {args.splits}")
+    print(f"\nPreprocessing {args.dataset} → {output_root}")
     print(f"Device: {args.device}, bandwidth: {args.bandwidth}kbps")
     print(f"Tokens per second of audio: {wrapper.tokens_per_second()}")
 
     all_stats  = {}
     start_time = time.time()
 
-    for split in args.splits:
-        all_stats[split] = preprocess_split(
-            split, librispeech_root, output_root, wrapper, tok
+    if args.dataset == "librispeech":
+        librispeech_root = Path(args.librispeech_root)
+        print(f"Splits: {args.splits}")
+        for split in args.splits:
+            all_stats[split] = preprocess_split(
+                split, librispeech_root, output_root, wrapper, tok
+            )
+    else:
+        all_stats["gigaspeech"] = preprocess_gigaspeech(
+            output_root, wrapper, tok, subset=args.gigaspeech_subset
         )
 
     elapsed = time.time() - start_time
 
-    # Write manifest
     manifest = {
-        "splits":          args.splits,
+        "dataset":         args.dataset,
         "bandwidth":       args.bandwidth,
         "tokens_per_sec":  wrapper.tokens_per_second(),
         "num_codebooks":   wrapper.num_codebooks,
