@@ -33,8 +33,8 @@ Output layout:
 """
 
 import argparse
+import io
 import json
-import os
 import re
 import time
 import torch
@@ -196,12 +196,15 @@ def preprocess_gigaspeech(
         subset      : GigaSpeech size bucket — xs/s/m/l/xl (default: m ≈ 1000h)
         hf_split    : HuggingFace split to use (default: train)
     """
-    os.environ["DATASETS_AUDIO_BACKEND"] = "soundfile"
-
     try:
         from datasets import load_dataset
     except ImportError:
         raise ImportError("pip install datasets")
+
+    try:
+        import soundfile as sf
+    except ImportError:
+        raise ImportError("pip install soundfile")
 
     try:
         import torchaudio.functional as AF
@@ -212,12 +215,14 @@ def preprocess_gigaspeech(
     out_dir = output_root / split_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"\nLoading GigaSpeech '{subset}' ({hf_split}) from HuggingFace...")
+    # streaming=True skips automatic audio decoding (which would invoke torchcodec).
+    # We decode each example manually via soundfile below.
+    print(f"\nLoading GigaSpeech '{subset}' ({hf_split}) from HuggingFace (streaming)...")
     ds = load_dataset(
         "speechcolab/gigaspeech", subset,
         split=hf_split,
+        streaming=True,
     )
-    print(f"  {len(ds):,} examples")
 
     stats = {"total": 0, "skipped": 0, "errors": 0,
              "total_tokens": 0, "total_duration": 0.0}
@@ -235,9 +240,8 @@ def preprocess_gigaspeech(
             continue
 
         try:
-            audio    = example["audio"]
-            waveform = torch.from_numpy(audio["array"]).float().unsqueeze(0)  # (1, samples)
-            sr       = audio["sampling_rate"]
+            arr, sr  = sf.read(io.BytesIO(example["audio"]["bytes"]), dtype="float32", always_2d=False)
+            waveform = torch.from_numpy(arr).float().unsqueeze(0)  # (1, samples)
 
             if sr != TARGET_SR:
                 waveform = AF.resample(waveform, sr, TARGET_SR)
