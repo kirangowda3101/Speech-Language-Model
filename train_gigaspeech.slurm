@@ -8,7 +8,7 @@
 #SBATCH --output=/scratch/ramanagarajayaram.k/logs/%j_train.out
 #SBATCH --error=/scratch/ramanagarajayaram.k/logs/%j_train.err
 
-source /home/ramanagarajayaram.k/.conda/etc/profile.d/conda.sh
+source /shared/EL9/explorer/anaconda3/2024.06/etc/profile.d/conda.sh
 conda activate speechlm
 
 module load cuda/12.3.0
