@@ -21,6 +21,7 @@ export HF_HOME=/scratch/ramanagarajayaram.k/hf_home
 export HF_DATASETS_CACHE=/scratch/ramanagarajayaram.k/gigaspeech/hf_cache
 export TRANSFORMERS_CACHE=/scratch/ramanagarajayaram.k/hf_home
 export XDG_CACHE_HOME=/scratch/ramanagarajayaram.k/cache
+export HUGGING_FACE_HUB_TOKEN=$(cat /home/ramanagarajayaram.k/.cache/huggingface/token)
 
 python preprocess.py \
     --dataset          gigaspeech \
