@@ -251,7 +251,7 @@ def preprocess_gigaspeech(
             duration_sec = waveform.shape[-1] / TARGET_SR
 
             codes     = wrapper.encode(waveform, sample_rate=TARGET_SR)
-            audio_ids = tok.encode_audio_codes(codes.numpy())
+            audio_ids = tok.encode_audio_codes(codes.cpu().numpy())
 
             np.save(npy_path, np.array(audio_ids, dtype=np.int32))
 
