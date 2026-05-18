@@ -213,7 +213,6 @@ def preprocess_gigaspeech(
     ds = load_dataset(
         "speechcolab/gigaspeech", subset,
         split=hf_split,
-        trust_remote_code=True,
     )
     print(f"  {len(ds):,} examples")
 
