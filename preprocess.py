@@ -34,6 +34,7 @@ Output layout:
 
 import argparse
 import json
+import os
 import re
 import time
 import torch
@@ -195,6 +196,8 @@ def preprocess_gigaspeech(
         subset      : GigaSpeech size bucket — xs/s/m/l/xl (default: m ≈ 1000h)
         hf_split    : HuggingFace split to use (default: train)
     """
+    os.environ["DATASETS_AUDIO_BACKEND"] = "soundfile"
+
     try:
         from datasets import load_dataset
     except ImportError:
