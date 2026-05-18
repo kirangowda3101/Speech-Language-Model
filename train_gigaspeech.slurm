@@ -2,8 +2,8 @@
 #SBATCH --job-name=giga_train
 #SBATCH --partition=gpu
 #SBATCH --time=07:30:00
-#SBATCH --gres=gpu:h200:4
-#SBATCH --nodelist=d4055
+#SBATCH --gres=gpu:a100:4
+#SBATCH --nodelist=d1028
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=8
 #SBATCH --output=/scratch/ramanagarajayaram.k/logs/%j_train.out
