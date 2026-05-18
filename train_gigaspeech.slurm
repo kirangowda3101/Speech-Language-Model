@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=giga_train
-#SBATCH --partition=gpu
-#SBATCH --time=07:30:00
-#SBATCH --gres=gpu:2
+#SBATCH --partition=courses-gpu
+#SBATCH --time=23:00:00
+#SBATCH --gres=gpu:1
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=8
 #SBATCH --output=/scratch/ramanagarajayaram.k/logs/%j_train.out
@@ -23,7 +23,7 @@ echo "Pre-submitted next job: $NEXT_JOB_ID"
 MASTER_PORT=$(python -c "import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.close()")
 
 torchrun \
-    --nproc_per_node=2 \
+    --nproc_per_node=1 \
     --master_addr=localhost \
     --master_port=$MASTER_PORT \
     train.py \

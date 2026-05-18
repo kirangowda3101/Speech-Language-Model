@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=giga_preprocess
-#SBATCH --partition=gpu
-#SBATCH --time=08:00:00
+#SBATCH --partition=gpu-short
+#SBATCH --time=02:00:00
 #SBATCH --gres=gpu:2
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=8
