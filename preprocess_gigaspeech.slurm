@@ -2,8 +2,7 @@
 #SBATCH --job-name=giga_preprocess
 #SBATCH --partition=gpu
 #SBATCH --time=08:00:00
-#SBATCH --gres=gpu:a100:4
-#SBATCH --nodelist=d1028
+#SBATCH --gres=gpu:2
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=8
 #SBATCH --output=/scratch/ramanagarajayaram.k/logs/%j_preprocess.out
