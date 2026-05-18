@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=giga_train
-#SBATCH --partition=courses-gpu
+#SBATCH --partition=gpu,courses-gpu
 #SBATCH --time=23:00:00
 #SBATCH --gres=gpu:1
 #SBATCH --mem=64G

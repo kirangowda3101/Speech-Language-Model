@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=giga_preprocess
-#SBATCH --partition=gpu-short
-#SBATCH --time=02:00:00
-#SBATCH --gres=gpu:2
+#SBATCH --partition=gpu,gpu-short
+#SBATCH --time=08:00:00
+#SBATCH --gres=gpu:1
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=8
 #SBATCH --output=/scratch/ramanagarajayaram.k/logs/%j_preprocess.out
