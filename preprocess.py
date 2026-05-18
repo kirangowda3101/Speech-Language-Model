@@ -197,7 +197,7 @@ def preprocess_gigaspeech(
         hf_split    : HuggingFace split to use (default: train)
     """
     try:
-        from datasets import load_dataset
+        import datasets
     except ImportError:
         raise ImportError("pip install datasets")
 
@@ -218,11 +218,12 @@ def preprocess_gigaspeech(
     # streaming=True skips automatic audio decoding (which would invoke torchcodec).
     # We decode each example manually via soundfile below.
     print(f"\nLoading GigaSpeech '{subset}' ({hf_split}) from HuggingFace (streaming)...")
-    ds = load_dataset(
+    ds = datasets.load_dataset(
         "speechcolab/gigaspeech", subset,
         split=hf_split,
         streaming=True,
     )
+    ds = ds.cast_column("audio", datasets.features.Audio(decode=False))
 
     stats = {"total": 0, "skipped": 0, "errors": 0,
              "total_tokens": 0, "total_duration": 0.0}
