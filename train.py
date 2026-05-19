@@ -110,7 +110,7 @@ def train(args, cfg: SpeechLMConfig):
 
     # Wrap in DDP after compile
     if is_dist:
-        model = DDP(model, device_ids=[local_rank])
+        model = DDP(model, device_ids=[local_rank], find_unused_parameters=True)
 
     # ── 4. Optimizer ─────────────────────────────────────────────
     raw_model = model.module if hasattr(model, "module") else model
