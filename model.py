@@ -439,7 +439,8 @@ class SpeechLM(nn.Module):
             {"params": nodecay_params, "weight_decay": 0.0},
         ]
         # Use fused AdamW on CUDA (meaningfully faster)
-        use_fused = (device == "cuda") and ("fused" in torch.optim.AdamW.__init__.__doc__ or True)
+        doc = torch.optim.AdamW.__init__.__doc__ or ""
+        use_fused = (device == "cuda") and ("fused" in doc)
         optimizer = torch.optim.AdamW(optim_groups, lr=lr, betas=(0.9, 0.95),
                                        eps=1e-8, fused=use_fused and torch.cuda.is_available())
         print(f"Optimiser: {len(decay_params)} decay tensors, {len(nodecay_params)} no-decay tensors")
