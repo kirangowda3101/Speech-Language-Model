@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=speechlm_giga_train
-#SBATCH --partition=sharing
-#SBATCH --time=48:00:00
+#SBATCH --partition=gpu
+#SBATCH --time=07:30:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --gres=gpu:a100:1
+#SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --output=/scratch/ramanagarajayaram.k/logs/%j_train.out
