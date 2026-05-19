@@ -111,7 +111,7 @@ class TrainingConfig:
     max_steps:        int   = 250_000  # pre-training ran to 100K; this extends for another 150K steps on GigaSpeech
     weight_decay:     float = 0.1
     grad_clip:        float = 1.0
-    mixed_precision:  bool  = True    # bf16 on A100/H100, fp16 otherwise
+    mixed_precision:  str   = "fp16"  # "fp16" for V100, "bf16" for A100/H100, "no" for float32
     compile:          bool  = True    # torch.compile for ~20% speedup
 
 

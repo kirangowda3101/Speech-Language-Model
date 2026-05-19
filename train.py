@@ -68,7 +68,14 @@ def train(args, cfg: SpeechLMConfig):
     # ── 1. Init distributed ─────────────────────────────────────
     rank, local_rank, world_size, is_dist = init_distributed()
     device = setup_device(local_rank, is_dist)
-    dtype  = get_dtype(cfg.training.mixed_precision, device)
+
+    _mp = cfg.training.mixed_precision
+    if _mp == "bf16":
+        dtype = torch.bfloat16
+    elif _mp == "fp16":
+        dtype = torch.float16
+    else:
+        dtype = torch.float32
 
     if is_master(rank):
         print(f"Training on {world_size} GPU(s), dtype={dtype}")
@@ -88,6 +95,11 @@ def train(args, cfg: SpeechLMConfig):
 
     # ── 3. Build model ───────────────────────────────────────────
     model = SpeechLM(cfg).to(device)
+
+    if hasattr(model, "gradient_checkpointing_enable"):
+        model.gradient_checkpointing_enable()
+        if is_master(rank):
+            print("Gradient checkpointing enabled")
 
     # torch.compile: fuses ops, reduces Python overhead (~20% speedup)
     # Requires PyTorch 2.0+. Disable if it causes issues.
