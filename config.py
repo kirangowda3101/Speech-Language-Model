@@ -103,8 +103,8 @@ class ModelConfig:
 
 @dataclass
 class TrainingConfig:
-    batch_size:       int   = 8       # per GPU
-    grad_accum_steps: int   = 4       # effective batch = batch_size × accum × n_gpus
+    batch_size:       int   = 2       # per GPU (reduced to fit in GPU memory)
+    grad_accum_steps: int   = 16      # effective batch = batch_size × accum × n_gpus = 32
     max_lr:           float = 3e-5    # 10x lower than pre-training — finetuning on GigaSpeech to avoid overwriting learned representations
     min_lr:           float = 3e-6    # keep 10x ratio with max_lr
     warmup_steps:     int   = 2_000

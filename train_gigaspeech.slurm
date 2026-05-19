@@ -30,6 +30,7 @@ export MASTER_PORT=$(python -c "import socket; s=socket.socket(); s.bind(('',0))
 export NCCL_DEBUG=INFO
 export NCCL_IB_DISABLE=0
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # ── Self-chaining: pre-submit next job before training starts ─────────────────
 cd "$REPO_DIR"
