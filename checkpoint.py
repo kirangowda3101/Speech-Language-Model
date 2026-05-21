@@ -66,6 +66,12 @@ def save_checkpoint(
         torch.save(checkpoint, best_path)
         print(f"New best checkpoint: {best_path}")
 
+    # Delete all step_*.pt files except the one just saved
+    for old in path.parent.glob("step_*.pt"):
+        if old != path:
+            old.unlink()
+            print(f"Deleted old checkpoint: {old}")
+
 
 def load_checkpoint(
     path: str | Path,
