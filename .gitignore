@@ -6,6 +6,7 @@ __pycache__/
 .venv/
 static/audio/
 *.wav
+!samples/*.wav
 *.flac
 *.npy
 tokens/
